@@ -1215,69 +1215,126 @@ max-width: 0px;
 </style>
 
 <script>
-    // 确保EmailJS库已加载
-    if (typeof emailjs === 'undefined') {
-        // 动态加载EmailJS库
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js';
-        script.onload = initEmailJS;
-        document.head.appendChild(script);
-    } else {
-        initEmailJS();
-    }
-    
-    function initEmailJS() {
+    // EmailJS配置 - 替换为您的实际配置
+    (function() {
         // 初始化EmailJS
         emailjs.init("service_cmsdj8f"); // 替换为您的EmailJS用户ID
         
-        // 表单提交处理
+        // 获取表单元素
         const contactForm = document.getElementById('contactForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const messageDiv = document.getElementById('formMessage');
+        
         if (contactForm) {
-            contactForm.addEventListener('submit', function(e) {
-                e.preventDefault(); // 阻止默认表单提交行为
+            contactForm.addEventListener('submit', async function(e) {
+                e.preventDefault(); // 阻止默认表单提交
+                
+                // 验证表单
+                if (!validateForm()) {
+                    return;
+                }
                 
                 // 显示加载状态
-                const submitBtn = document.querySelector('button[type="submit"]');
-                const messageDiv = document.getElementById('formMessage');
-                const originalBtnText = submitBtn.textContent;
-                submitBtn.textContent = "Sending...";
-                submitBtn.disabled = true;
+                setLoading(true, 'Sending your message...');
                 
-                messageDiv.textContent = "Sending your message...";
-                messageDiv.className = 'form-message loading';
-                messageDiv.style.display = 'block';
-                
-                // 使用EmailJS发送邮件
-                emailjs.sendForm('service_cmsdj8f', 'service_cmsdj8f', this)
-                .then(function(response) {
-                    console.log('SUCCESS!', response.status, response.text);
-                    showMessage('Message sent successfully!', 'success');
+                try {
+                    // 使用EmailJS发送邮件
+                    const result = await emailjs.sendForm(
+                        'service_cmsdj8f',    // 替换为您的服务ID
+                        'template_x0vt3u5',   // 替换为您的模板ID
+                        this
+                    );
+                    
+                    console.log('Email sent successfully:', result);
+                    showMessage('Message sent successfully! I will reply to you soon.', 'success');
                     contactForm.reset();
-                }, function(error) {
-                    console.log('FAILED...', error);
-                    showMessage('Failed to send message. Please try again.', 'error');
-                })
-                .finally(function() {
-                    // 恢复按钮状态
-                    submitBtn.textContent = originalBtnText;
-                    submitBtn.disabled = false;
-                });
+                    
+                } catch (error) {
+                    console.error('Email sending failed:', error);
+                    
+                    // 提供具体的错误信息
+                    let errorMsg = 'Failed to send message. Please try again.';
+                    
+                    if (error.text && error.text.includes('Invalid template ID')) {
+                        errorMsg = 'Template configuration error. Please check template settings.';
+                    } else if (error.text && error.text.includes('Invalid user ID')) {
+                        errorMsg = 'EmailJS configuration error. Please check user ID.';
+                    } else if (error.text && error.text.includes('Invalid service ID')) {
+                        errorMsg = 'Email service configuration error. Please check service settings.';
+                    }
+                    
+                    showMessage(errorMsg, 'error');
+                } finally {
+                    setLoading(false, '');
+                }
             });
         }
-    }
-    
-    // 显示消息函数
-    function showMessage(text, type) {
-        const messageDiv = document.getElementById('formMessage');
-        messageDiv.textContent = text;
-        messageDiv.className = 'form-message ' + type;
         
-        // 5秒后隐藏消息
-        setTimeout(() => {
-            messageDiv.style.display = 'none';
-        }, 5000);
-    }
+        // 表单验证函数
+        function validateForm() {
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const subject = document.getElementById('subject').value.trim();
+            const message = document.getElementById('message').value.trim();
+            
+            // 验证邮箱格式
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!name) {
+                showMessage('Please enter your name.', 'error');
+                return false;
+            }
+            
+            if (!email || !emailRegex.test(email)) {
+                showMessage('Please enter a valid email address.', 'error');
+                return false;
+            }
+            
+            if (!subject) {
+                showMessage('Please enter a subject.', 'error');
+                return false;
+            }
+            
+            if (!message || message.length < 10) {
+                showMessage('Message should be at least 10 characters.', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // 显示消息函数
+        function showMessage(text, type) {
+            if (messageDiv) {
+                messageDiv.textContent = text;
+                messageDiv.className = 'form-message ' + type;
+                messageDiv.style.display = 'block';
+                
+                // 5秒后自动隐藏错误消息，保留成功消息
+                if (type === 'error') {
+                    setTimeout(() => {
+                        messageDiv.style.display = 'none';
+                    }, 5000);
+                }
+            }
+        }
+        
+        // 设置加载状态
+        function setLoading(isLoading, message) {
+            if (submitBtn) {
+                submitBtn.disabled = isLoading;
+                submitBtn.textContent = isLoading ? 'Sending...' : 'Send Message';
+            }
+            
+            if (isLoading && message) {
+                showMessage(message, 'loading');
+            } else if (!isLoading) {
+                // 不清除成功/错误消息
+            }
+        }
+    })();
 </script>
+
 
 <!-- 引入EmailJS库 -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
