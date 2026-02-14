@@ -1333,6 +1333,212 @@ max-width: 0px;
             }
         }
     })();
+
+    <script>
+        // 解决方案1: 使用sessionStorage记录滚动位置
+        (function() {
+            // 存储当前滚动位置
+            function saveScrollPosition() {
+                sessionStorage.setItem('scrollPosition', window.pageYOffset);
+            }
+            
+            // 恢复滚动位置
+            function restoreScrollPosition() {
+                const savedPosition = sessionStorage.getItem('scrollPosition');
+                if (savedPosition) {
+                    window.scrollTo(0, parseInt(savedPosition));
+                    sessionStorage.removeItem('scrollPosition'); // 清除存储
+                }
+            }
+            
+            // 页面加载时恢复滚动位置
+            window.addEventListener('load', restoreScrollPosition);
+            
+            // 监听表单提交前的滚动位置
+            document.getElementById('contactForm')?.addEventListener('submit', saveScrollPosition);
+        })();
+        
+        // 解决方案2: 修正的表单处理代码
+        (function() {
+            // 初始化EmailJS
+            emailjs.init("YOUR_USER_ID"); // 替换为您的实际User ID
+            
+            const contactForm = document.getElementById('contactForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const messageDiv = document.getElementById('formMessage');
+            
+            if (!contactForm) return;
+            
+            // 保存当前表单的位置
+            let formPosition = 0;
+            
+            contactForm.addEventListener('submit', async function(e) {
+                e.preventDefault(); // 阻止表单默认提交行为
+                
+                // 方案3: 使用scroll-behavior保持位置
+                formPosition = window.pageYOffset;
+                
+                // 保存表单数据，用于可能的重新填充
+                const formData = new FormData(this);
+                const formDataObject = Object.fromEntries(formData.entries());
+                
+                // 验证表单
+                if (!validateForm()) {
+                    return;
+                }
+                
+                // 显示加载状态
+                setLoading(true, '发送中...');
+                
+                try {
+                    // 使用EmailJS发送邮件
+                    const result = await emailjs.sendForm(
+                        'YOUR_SERVICE_ID',    // 替换为您的服务ID
+                        'YOUR_TEMPLATE_ID',   // 替换为您的模板ID
+                        this
+                    );
+                    
+                    console.log('邮件发送成功:', result);
+                    
+                    // 方案4: 显示成功消息但不重置滚动位置
+                    showMessage('消息发送成功！我会尽快回复您。', 'success');
+                    
+                    // 轻微延迟后重置表单
+                    setTimeout(() => {
+                        contactForm.reset();
+                        setLoading(false, '');
+                    }, 1000);
+                    
+                } catch (error) {
+                    console.error('邮件发送失败:', error);
+                    
+                    let errorMsg = '发送失败，请稍后重试。';
+                    
+                    if (error.text) {
+                        if (error.text.includes('Invalid template ID')) {
+                            errorMsg = '模板配置错误，请检查模板设置。';
+                        } else if (error.text.includes('Invalid user ID')) {
+                            errorMsg = 'EmailJS配置错误，请检查用户ID。';
+                        } else if (error.text.includes('Invalid service ID')) {
+                            errorMsg = '邮箱服务配置错误，请检查服务设置。';
+                        }
+                    }
+                    
+                    // 方案5: 重新填充表单数据
+                    repopulateForm(formDataObject);
+                    
+                    showMessage(errorMsg, 'error');
+                    setLoading(false, '');
+                    
+                } finally {
+                    // 方案6: 保持滚动位置
+                    setTimeout(() => {
+                        window.scrollTo({
+                            top: formPosition,
+                            behavior: 'smooth'
+                        });
+                    }, 100);
+                }
+            });
+            
+            // 表单验证函数
+            function validateForm() {
+                const name = document.getElementById('name').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const message = document.getElementById('message').value.trim();
+                
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                
+                if (!name) {
+                    showMessage('请输入您的姓名。', 'error');
+                    return false;
+                }
+                
+                if (!email || !emailRegex.test(email)) {
+                    showMessage('请输入有效的邮箱地址。', 'error');
+                    return false;
+                }
+                
+                if (!message || message.length < 10) {
+                    showMessage('消息内容至少需要10个字符。', 'error');
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            // 重新填充表单函数
+            function repopulateForm(data) {
+                document.getElementById('name').value = data.name || '';
+                document.getElementById('email').value = data.email || '';
+                document.getElementById('message').value = data.message || '';
+            }
+            
+            // 显示消息函数
+            function showMessage(text, type) {
+                if (messageDiv) {
+                    messageDiv.textContent = text;
+                    messageDiv.className = 'form-message ' + type;
+                    messageDiv.style.display = 'block';
+                    
+                    // 方案7: 轻微滚动显示消息但不跳转到顶部
+                    setTimeout(() => {
+                        messageDiv.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'nearest' 
+                        });
+                    }, 50);
+                    
+                    // 自动隐藏错误消息
+                    if (type === 'error') {
+                        setTimeout(() => {
+                            messageDiv.style.display = 'none';
+                        }, 5000);
+                    }
+                }
+            }
+            
+            // 设置加载状态
+            function setLoading(isLoading, message) {
+                if (submitBtn) {
+                    submitBtn.disabled = isLoading;
+                    submitBtn.textContent = isLoading ? '发送中...' : '发送消息';
+                }
+                
+                if (isLoading && message) {
+                    showMessage(message, 'loading');
+                }
+            }
+            
+            // 方案8: 监听所有可能的导致跳转的事件
+            const inputs = contactForm.querySelectorAll('input, textarea, button');
+            inputs.forEach(input => {
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && e.target.type !== 'textarea') {
+                        e.preventDefault();
+                    }
+                });
+            });
+            
+        })();
+        
+        // 方案9: 使用Intersection Observer保持视图
+        (function() {
+            const formElement = document.getElementById('contactForm');
+            if (!formElement) return;
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // 表单在视图中，记录位置
+                        sessionStorage.setItem('currentFormView', 'visible');
+                    }
+                });
+            }, { threshold: 0.5 });
+            
+            observer.observe(formElement);
+        })();
+    </script>
 </script>
 
 
