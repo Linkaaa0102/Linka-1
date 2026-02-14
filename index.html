@@ -1663,7 +1663,7 @@ max-width: 0px;
     // 初始化EmailJS - 替换为您的配置
     (function() {
         // 初始化EmailJS
-        emailjs.init("YOUR_USER_ID_HERE"); // 替换为您的EmailJS用户ID
+        emailjs.init("service_cmsdj8f"); // 替换为您的EmailJS用户ID
         
         // 获取表单元素
         const contactForm = document.getElementById('contactForm');
@@ -1682,8 +1682,8 @@ max-width: 0px;
             try {
                 // 发送邮件
                 const response = await emailjs.sendForm(
-                    'YOUR_SERVICE_ID_HERE',  // 替换为您的服务ID
-                    'YOUR_TEMPLATE_ID_HERE', // 替换为您的模板ID
+                    'service_cmsdj8f',  // 替换为您的服务ID
+                    'template_x0vt3u5', // 替换为您的模板ID
                     this
                 );
                 
