@@ -1228,7 +1228,7 @@ max-width: 0px;
     
     function initEmailJS() {
         // 初始化EmailJS
-        emailjs.init("YOUR_USER_ID"); // 替换为您的EmailJS用户ID
+        emailjs.init("service_cmsdj8f"); // 替换为您的EmailJS用户ID
         
         // 表单提交处理
         const contactForm = document.getElementById('contactForm');
@@ -1248,7 +1248,7 @@ max-width: 0px;
                 messageDiv.style.display = 'block';
                 
                 // 使用EmailJS发送邮件
-                emailjs.sendForm('service_cmsdj8f', 'YOUR_TEMPLATE_ID', this)
+                emailjs.sendForm('service_cmsdj8f', 'service_cmsdj8f', this)
                 .then(function(response) {
                     console.log('SUCCESS!', response.status, response.text);
                     showMessage('Message sent successfully!', 'success');
